@@ -1,0 +1,1227 @@
+================================================================================
+                    AULA.TYPING — MASTER PROJECT PROMPT
+              Complete Technical Specification & Architecture Document
+                         Version 1.0 | October 2026
+================================================================================
+
+TABLE OF CONTENTS
+─────────────────
+  1.  Project Overview & Vision
+  2.  Technology Stack
+  3.  Project Directory Structure
+  4.  Frontend Architecture
+      4.1  App Entry & Routing (App.jsx)
+      4.2  Glassmorphism Design System (index.css)
+      4.3  3D Intro Logo Splash Screen (Intro3DLogo.jsx)
+      4.4  3D Keyboard Model Viewer (KeyboardModelViewer.jsx)
+      4.5  Typing Test View (TypingTestView.jsx)
+      4.6  Results View (ResultsView.jsx)
+      4.7  History & Analytics View (HistoryView.jsx)
+      4.8  Practice Drills View (PracticeView.jsx)
+      4.9  Settings View (SettingsView.jsx)
+      4.10 API Client Service (apiClient.js)
+  5.  Backend Architecture
+      5.1  Server & App Bootstrap (server.ts / app.ts)
+      5.2  Configuration (config/index.ts)
+      5.3  Database Layer (config/database.ts)
+      5.4  Typing Routes (typing.routes.ts)
+      5.5  Typing Service (typing.service.ts)
+      5.6  Scoring Engine (scoring.engine.ts)
+      5.7  Passages Data (passages.data.ts)
+      5.8  AI Service — Gemini Integration (ai.service.ts)
+      5.9  Database Model (TypingResult.model.ts)
+      5.10 Error Handling (AppError.ts / errorHandler.ts)
+  6.  API Endpoints Reference
+  7.  Gemini AI Integration (Detailed)
+  8.  Glassmorphism UI Design Specification
+  9.  3D Rendering Specification
+  10. Environment Variables
+  11. Running the Project
+  12. Key Features Checklist
+  13. Known Issues & Resolutions
+  14. Future Enhancements
+  15. Commit History & Changelog Summary
+
+================================================================================
+1. PROJECT OVERVIEW & VISION
+================================================================================
+
+Project Name   : Aula.Typing
+Tagline        : Precision Mechanical Typing Benchmark
+Project Type   : Full-Stack Web Application (Typing Speed Test Platform)
+Primary Goal   : Provide a high-end, professional-grade typing speed benchmark
+                 tool inspired by Monkeytype but elevated with:
+                 — Real 3D keyboard model (Aula F75 GLB)
+                 — Glassmorphism UI design system
+                 — Google Gemini AI-powered dynamic passages
+                 — Server-authoritative scoring engine
+                 — MongoDB persistence
+                 — Anonymous visitor sessions (zero sign-up friction)
+
+User Journey:
+  1. User lands on the app → 3D logo splash screen plays (Aula logo in Three.js)
+  2. Splash fades away smoothly (3.8 seconds total animation)
+  3. Home Dashboard appears with the interactive 3D Aula F75 keyboard model
+  4. User navigates to "Typing Test"
+  5. A fresh AI-generated passage (via Gemini) auto-loads on every page load
+  6. User selects category (All / General / Code / Punctuation / Numbers)
+  7. User selects duration (30s / 60s / 120s)
+  8. User clicks "Start Benchmark" — server creates and starts a session
+  9. User types — live WPM, Accuracy, Progress shown in real-time HUD
+  10. Timer expires (or passage complete) → results submitted to backend
+  11. Backend scoring engine calculates authoritative Net WPM, Gross WPM, Accuracy
+  12. Results page shows full breakdown + Gemini AI coach feedback
+  13. History & Analytics page shows all past benchmarks and trendlines
+
+================================================================================
+2. TECHNOLOGY STACK
+================================================================================
+
+FRONTEND
+  Runtime        : React 18 (Vite build system)
+  Language       : JavaScript (JSX)
+  3D Rendering   : Three.js (r160+), three-stdlib (OrbitControls)
+  Icons          : lucide-react
+  CSS            : Pure CSS Variables (no Tailwind), Glassmorphism system
+  Fonts          : Plus Jakarta Sans (UI), JetBrains Mono (typing area)
+  Confetti       : canvas-confetti (test completion celebration)
+  Build Tool     : Vite 5.x
+  Dev Port       : http://localhost:5173
+
+BACKEND
+  Runtime        : Node.js 20+
+  Language       : TypeScript 5.x (compiled to dist/)
+  Framework      : Express.js 4.x
+  AI Integration : Google Gemini API (gemini-flash-lite-latest model)
+  Database       : MongoDB (via Mongoose) + In-Memory fallback
+  Testing        : Vitest
+  Build          : tsc (TypeScript compiler)
+  Server Port    : http://localhost:3001
+
+EXTERNAL SERVICES
+  Gemini API     : https://generativelanguage.googleapis.com/v1beta/
+                   Model: gemini-flash-lite-latest
+                   Used for: Dynamic passage generation + Coaching feedback
+
+================================================================================
+3. PROJECT DIRECTORY STRUCTURE
+================================================================================
+
+Typing/
+├── README.md
+├── start-backend.bat               ← Windows batch launcher for backend
+├── start-frontend.bat              ← Windows batch launcher for frontend
+├── MASTER_PROMPT.txt               ← THIS FILE
+│
+├── aula-f75-mechanical-keyboard/
+│   └── source/
+│       └── keyboard v2 75.glb      ← Original Aula F75 3D model source
+│
+├── backend/
+│   ├── .env                        ← Environment variables (secret, not committed)
+│   ├── .env.example                ← Template for environment variables
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vitest.config.ts
+│   ├── dist/                       ← Compiled JavaScript output
+│   └── src/
+│       ├── app.ts                  ← Express app factory
+│       ├── server.ts               ← HTTP server bootstrap
+│       ├── common/
+│       │   ├── errors/
+│       │   │   └── AppError.ts     ← Custom error classes
+│       │   └── middleware/
+│       │       └── errorHandler.ts ← Global Express error handler
+│       ├── config/
+│       │   ├── index.ts            ← All config values (from .env)
+│       │   └── database.ts         ← MongoDB connection logic
+│       ├── database/
+│       │   └── models/
+│       │       └── TypingResult.model.ts ← Mongoose schema
+│       ├── integrations/
+│       │   └── ai/
+│       │       └── ai.service.ts   ← Gemini AI passage + coaching service
+│       ├── modules/
+│       │   ├── passages/
+│       │   │   └── passages.data.ts ← Seed passages data
+│       │   └── typing/
+│       │       ├── typing.routes.ts  ← All API route handlers
+│       │       ├── typing.service.ts ← Session management & business logic
+│       │       ├── scoring.engine.ts ← Authoritative WPM/Accuracy calculator
+│       │       └── scoring.engine.test.ts ← Unit tests
+│       └── tests/
+│           └── integration.test.ts  ← API integration tests
+│
+└── frontend/
+    ├── .env                         ← Frontend env (VITE_API_BASE_URL etc.)
+    ├── index.html
+    ├── package.json
+    ├── vite.config.js
+    ├── public/
+    │   ├── favicon.svg
+    │   ├── icons.svg
+    │   └── models/
+    │       └── keyboard.glb         ← Aula F75 model (served statically)
+    └── src/
+        ├── App.jsx                  ← Root component & tab router
+        ├── App.css
+        ├── index.css                ← Global glassmorphism design system
+        ├── main.jsx                 ← React DOM entry point
+        ├── assets/
+        │   ├── logo-no-bg.png       ← Transparent Aula logo (for 3D intro)
+        │   ├── intro-logo.png
+        │   ├── logo-clean.png
+        │   └── logo-transparent.png
+        ├── services/
+        │   └── apiClient.js         ← Axios/fetch wrapper for all API calls
+        └── components/
+            ├── three/
+            │   ├── Intro3DLogo.jsx       ← 3D splash screen (Three.js)
+            │   └── KeyboardModelViewer.jsx ← Interactive 3D keyboard (Three.js + GLB)
+            ├── typing/
+            │   └── TypingTestView.jsx    ← Main typing test UI
+            ├── results/
+            │   └── ResultsView.jsx       ← Post-test results & AI coaching
+            ├── history/
+            │   └── HistoryView.jsx       ← Past tests & analytics charts
+            ├── practice/
+            │   └── PracticeView.jsx      ← Guided practice drills
+            └── settings/
+                └── SettingsView.jsx      ← Theme & preferences settings
+
+================================================================================
+4. FRONTEND ARCHITECTURE
+================================================================================
+
+────────────────────────────────────────────────────────────────────
+4.1 APP ENTRY & ROUTING — App.jsx
+────────────────────────────────────────────────────────────────────
+
+The root component manages:
+
+STATE:
+  showIntro      (bool)   — Controls 3D splash screen visibility
+  currentTab     (string) — Active view: 'home' | 'test' | 'practice' |
+                            'results' | 'history' | 'settings'
+  theme          (string) — 'dark-ocean' (default) | 'warm-earth'
+  lastResult     (obj)    — Stores last completed test result for ResultsView
+  summary        (obj)    — Analytics summary fetched from /api/v1/analytics/summary
+
+STRUCTURE:
+  1. Intro3DLogo splash (conditionally rendered over the whole screen)
+  2. Sticky glass header with navigation tabs + theme toggle
+  3. Main content area that renders the active tab view
+  4. Footer
+
+NAVIGATION TABS:
+  Home → TypingTestView | PracticeView | ResultsView | HistoryView | SettingsView
+
+THEME SYSTEM:
+  — Reads from localStorage on load, applies via data-theme attribute on <html>
+  — Persists user preference to localStorage on change
+  — Two themes: dark-ocean (navy/steel) and warm-earth (espresso/caramel)
+
+────────────────────────────────────────────────────────────────────
+4.2 GLASSMORPHISM DESIGN SYSTEM — index.css
+────────────────────────────────────────────────────────────────────
+
+DESIGN LANGUAGE: Premium frosted-glass aesthetics
+
+PALETTE A — DARK OCEAN (Default):
+  --color-bg-deep:         #0D1B2A  (deepest background)
+  --color-bg-elevated:     #1B263B  (elevated surfaces)
+  --color-surface:         #415A77  (interactive elements)
+  --color-success:         #778D7A  (correct/positive states)
+  --color-accent:          #D4C4A8  (primary accent / warm sand)
+  --color-text-primary:    #F4F1DE  (main text)
+  --color-text-muted:      rgba(244, 241, 222, 0.65)
+
+  Glass Properties:
+  --glass-bg:              rgba(27, 38, 59, 0.68)    ← backdrop
+  --glass-border:          rgba(65, 90, 119, 0.28)   ← subtle border
+  --glass-shadow:          0 16px 40px -10px rgba(10,20,32,0.6)
+  --glass-highlight:       rgba(244, 241, 222, 0.06) ← top shimmer line
+
+PALETTE B — WARM EARTH:
+  --color-bg-deep:         #3E2522  (espresso brown)
+  --color-accent:          #FFE0B2  (peach cream)
+  --color-text-primary:    #FFF2DF
+
+CSS CLASSES:
+  .glass-panel             Main frosted panel (blur: 16px, rounded: 16px)
+  .glass-panel::before     Top shimmer gradient line
+  .glass-panel-subtle      Lighter variant (blur: 10px)
+  .glass-btn               Interactive button (hover + active states)
+  .glass-btn.primary       Accent-colored CTA button
+  .badge                   Small label chip (default & accent variants)
+  .spinner-ring            CSS animated loading ring
+  .spin-slow               Slow rotation animation
+  .error-state             Red-tinted error card
+
+FONTS:
+  Plus Jakarta Sans — All UI text (weights: 400, 500, 600, 700, 800)
+  JetBrains Mono    — Typing test passage area (monospace)
+  Loaded via Google Fonts @import
+
+────────────────────────────────────────────────────────────────────
+4.3 3D INTRO LOGO SPLASH SCREEN — Intro3DLogo.jsx
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: Plays once per page load. Shows the Aula logo in 3D with 
+neon light aura before transitioning to the main app.
+
+TECHNOLOGY: Three.js (PlaneGeometry + MeshStandardMaterial + texture)
+
+LOGO ASSET: /src/assets/logo-no-bg.png
+  — Transparent PNG (background removed)
+  — Dimensions: 810 × 546 pixels
+  — Aspect ratio: 1.483 : 1
+
+THREE.JS SETUP:
+  Scene          → Empty scene, dark navy background (#0D1B2A)
+  Camera         → PerspectiveCamera(FOV: 42, near: 0.1, far: 100)
+                   Position: (0, 0, 8.5)
+  Renderer       → WebGLRenderer, antialias, alpha: true
+                   ToneMapping: ACESFilmicToneMapping (exposure: 1.35)
+                   OutputColorSpace: SRGBColorSpace
+                   PixelRatio: min(devicePixelRatio, 2)
+
+LIGHTING SETUP (matches original Aula logo neon colors):
+  AmbientLight   → #FFFFFF, intensity: 1.4
+  PointBlue      → #3B82F6 (blue), intensity: 4.0, distance: 14
+                   Position: (-3.5, 0, 3) — left side
+  PointMagenta   → #EC4899 (pink), intensity: 3.5, distance: 12
+                   Position: (0, -1.8, 3) — bottom center
+  PointEmerald   → #10B981 (green), intensity: 4.0, distance: 14
+                   Position: (3.5, 0, 3) — right side
+  PointAmber     → #F59E0B (amber), intensity: 3.0, distance: 10
+                   Position: (1.5, 1.2, 3) — upper center
+
+MESH LAYERS (3 layers for depth):
+  1. FRONT PLATE  → MeshStandardMaterial (texture, roughness: 0.25, 
+                    metalness: 0.1, emissive: #222222)
+                    Position Z: +0.15 (slightly forward)
+  2. BACK PLATE   → Clone with opacity 0.85, black color
+                    Position Z: -0.15 (behind)
+  3. GLOW LAYER   → MeshBasicMaterial, AdditiveBlending, opacity: 0.5
+                    Scale: 1.04× (slightly larger for bloom effect)
+                    Position Z: -0.05
+
+PARTICLE SYSTEM:
+  Count: 80 ambient star-dust particles
+  Spread: 16 × 10 × 6 units (random positions)
+  Material: PointsMaterial, color: #D4C4A8, size: 0.04, opacity: 0.5
+  Animation: slow Y-axis rotation (0.0008 rad/frame)
+
+ANIMATION TIMELINE (total: 3.8 seconds):
+  0.0s – 1.8s  : Entrance — scale grows 0.1→1.05 (quartic ease-out)
+                             rotation.x: 0.35→0, rotation.y: -0.45→0
+  1.8s – 3.2s  : Float    — gentle sin/cos oscillation
+                             rotation.y: sin(t×1.4) × 0.06
+                             rotation.x: cos(t×1.4) × 0.04
+                             position.y: sin(t×2.2) × 0.08
+  3.2s          : FADE OUT begins (opacity CSS transition: 0.7s)
+  3.8s          : onComplete() callback fires → main app renders
+
+DUPLICATE PLAY PREVENTION:
+  hasFinishedRef (useRef) prevents double-play in React StrictMode
+  (StrictMode runs effects twice in development; the ref guard stops
+  the second execution)
+
+────────────────────────────────────────────────────────────────────
+4.4 3D KEYBOARD MODEL VIEWER — KeyboardModelViewer.jsx
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: Interactive 3D showcase of the Aula F75 mechanical keyboard.
+         Displayed on the Home dashboard. User can drag, rotate, zoom.
+
+MODEL FILE: /public/models/keyboard.glb (Aula F75 authentic GLB)
+
+TECHNOLOGY: Three.js + GLTFLoader + OrbitControls (three-stdlib)
+
+THREE.JS SETUP:
+  Camera         → PerspectiveCamera(FOV: 38)
+                   Position: (0, 11, 10) — elevated, looking down at keys
+  Renderer       → WebGLRenderer, antialias, alpha: true
+                   Same tone mapping / color space as intro
+
+LIGHTING (Studio Quality):
+  AmbientLight   → #FFF7EA, intensity: 1.6 (warm white fill)
+  KeyLight       → #FFECD2, intensity: 3.2, pos: (6, 16, 8)  ← main light
+  FillLight      → #7DA4D4, intensity: 2.0, pos: (-8, 10, -6) ← blue fill
+  AccentLight    → #D4C4A8, intensity: 2.4, pos: (0, 14, -8)  ← rim light
+  PointGlow      → #D3A376, intensity: 2.5, distance: 15, pos: (0, 1, 0)
+
+ORBIT CONTROLS:
+  enableDamping  : true (dampingFactor: 0.05)
+  maxPolarAngle  : PI/2.05 (can't flip below floor)
+  minDistance    : 5 units
+  maxDistance    : 24 units
+  autoRotate     : true by default (speed: 1.2)
+  target         : (0, 0, 0)
+
+MODEL PROCESSING AFTER LOAD:
+  — Traverse all meshes → castShadow, receiveShadow = true
+  — material.side = THREE.DoubleSide (no backface culling)
+  — Compute bounding box → scale model to fit 8.5 units wide
+  — Rotate -90° on X axis (Blender exports Z-up, Three.js uses Y-up)
+  — Recenter to origin based on oriented bounding box
+
+UI CONTROLS OVERLAY:
+  — "Rotating / Paused" toggle button (top-right)
+  — "Reset View" button resets camera to initial (0, 11, 10)
+  — Loading spinner while GLB loads
+  — WebGL availability check with error fallback
+
+────────────────────────────────────────────────────────────────────
+4.5 TYPING TEST VIEW — TypingTestView.jsx
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: The core typing benchmark interface.
+
+KEY STATE:
+  passages           — Array of passage objects from API
+  selectedCategory   — 'all'|'general'|'code'|'punctuation'|'numbers'
+  selectedPassage    — Currently displayed passage object
+  duration           — Test duration: 30 | 60 | 120 (seconds)
+  session            — Active session object from backend
+  status             — 'ready'|'active'|'submitting'|'completed'|'error'
+  typedText          — User's current typed string
+  timeLeft           — Countdown timer value
+  liveWpm            — Real-time WPM estimate (client-side)
+  liveAccuracy       — Real-time accuracy % (client-side)
+  soundEnabled       — Toggle for mechanical click synthesizer
+
+PASSAGE LOADING (on mount & category change):
+  — Automatically calls: GET /api/v1/passages?ai=true&category={cat}
+  — Backend calls Gemini to generate a fresh, unique, category-specific passage
+  — Every page load and category switch = new unique AI passage
+  — Falls back to seeded passages if Gemini API is unavailable
+
+"NEW AI SENTENCE" BUTTON:
+  — Calls: GET /api/v1/passages/random-gemini?category={cat}
+  — Returns a brand-new Gemini-generated passage immediately
+  — Resets typed text, timer, and status to 'ready'
+  — Button is disabled during an active test
+
+MECHANICAL SOUND SYNTHESIZER:
+  — Uses Web Audio API (AudioContext) — no external audio files needed
+  — Creates an OscillatorNode (type: 'triangle')
+  — Frequency: 800–1000 Hz (randomized for variety)
+  — Duration: 40ms per keystroke (short, crisp click)
+  — Gain: exponential ramp to silence (natural decay)
+  — Falls back silently if AudioContext is blocked
+
+TYPING PASSAGE DISPLAY:
+  — Font: JetBrains Mono, 1.3rem, lineHeight: 1.9
+  — Characters rendered as individual <span> elements
+  — Colors:
+      Untyped     : rgba(244, 241, 222, 0.32) — dim
+      Correct     : var(--color-success) — green
+      Incorrect   : #f87171 + rgba(239, 68, 68, 0.25) bg — red
+      Current     : 2px accent-colored bottom border (cursor indicator)
+  — Clicking anywhere on the passage panel focuses the hidden input
+
+HIDDEN INPUT:
+  — position: absolute, opacity: 0
+  — Captures all keystrokes without showing a browser text box
+  — autoCapitalize, autoComplete, autoCorrect, spellCheck all OFF
+
+TEST LIFECYCLE:
+  1. startTest()   → POST /typing/sessions (create)
+                   → POST /typing/sessions/:id/start (authoritative start)
+                   → Set status='active', focus hidden input
+  2. Active typing → handleInputChange() captures each keystroke
+                   → eventsRef stores {timeMs, type, char} trace events
+                   → Live WPM + accuracy updated every keystroke
+  3. finishTest()  → POST /typing/sessions/:id/complete
+                   → Backend calculates authoritative score
+                   → canvas-confetti celebration fires
+                   → onTestComplete(result) callback → navigate to Results
+
+LIVE HUD (4-column grid during test):
+  TIME REMAINING — red when ≤10 seconds
+  CURRENT WPM    — real-time estimate
+  LIVE ACCURACY  — percentage correct so far
+  PROGRESS       — % of passage typed
+
+────────────────────────────────────────────────────────────────────
+4.6 RESULTS VIEW — ResultsView.jsx
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: Displays full test results after completion.
+
+SHOWS:
+  — Net WPM (authoritative, server-calculated)
+  — Gross WPM
+  — Accuracy %
+  — Keystroke Accuracy %
+  — Total correct / incorrect characters
+  — Total corrections (backspaces used)
+  — Benchmark eligibility status
+  — WPM trend chart (per-5-second intervals)
+  — Gemini AI coaching feedback panel:
+      * Strengths
+      * Areas for improvement
+      * Recommended drills
+      * Full coach summary (Gemini-generated prose)
+  — "Try Again" and "Go to Practice" navigation buttons
+
+────────────────────────────────────────────────────────────────────
+4.7 HISTORY & ANALYTICS VIEW — HistoryView.jsx
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: Shows all past typing test sessions for the visitor.
+
+FETCHES: GET /api/v1/typing/history (with X-Visitor-Id header)
+
+DISPLAYS:
+  — Chronological list of completed tests
+  — Each entry: date, Net WPM, Accuracy, Duration, Category
+  — Personal best WPM highlighted
+  — Average WPM trend over time
+
+────────────────────────────────────────────────────────────────────
+4.8 PRACTICE DRILLS VIEW — PracticeView.jsx
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: Guided practice exercises targeting specific weaknesses.
+
+DRILL TYPES:
+  — Common words (top 200 English words)
+  — Home row focused (asdf jkl;)
+  — Punctuation & symbols
+  — Number sequences
+  — Code-specific (operators, brackets, semicolons)
+  — Custom passage input
+
+────────────────────────────────────────────────────────────────────
+4.9 SETTINGS VIEW — SettingsView.jsx
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: User preferences and diagnostics.
+
+OPTIONS:
+  — Theme selector: Dark Ocean | Warm Earth
+  — Sound toggle (mechanical click synthesizer)
+  — Backend connectivity status check
+  — API version info
+  — Clear local data option
+
+────────────────────────────────────────────────────────────────────
+4.10 API CLIENT SERVICE — apiClient.js
+────────────────────────────────────────────────────────────────────
+
+PURPOSE: Centralized HTTP client for all frontend-to-backend calls.
+
+FEATURES:
+  — Base URL configured via import.meta.env.VITE_API_BASE_URL
+     (default: http://localhost:3001)
+  — Automatically attaches X-Visitor-Id header (generated UUID, stored
+    in localStorage as 'visitorId')
+  — JSON Content-Type header on all requests
+  — Returns parsed JSON response data
+
+VISITOR ID MECHANISM:
+  — On first visit: crypto.randomUUID() generates a new UUID
+  — Stored in localStorage under key 'visitorId'
+  — Sent with every API request as X-Visitor-Id header
+  — This enables anonymous persistence without user accounts
+
+================================================================================
+5. BACKEND ARCHITECTURE
+================================================================================
+
+────────────────────────────────────────────────────────────────────
+5.1 SERVER & APP BOOTSTRAP — server.ts / app.ts
+────────────────────────────────────────────────────────────────────
+
+server.ts:
+  — Loads environment variables
+  — Connects to MongoDB (with in-memory fallback if connection fails)
+  — Starts HTTP server on configured port (default: 3001)
+  — Handles graceful shutdown on SIGTERM/SIGINT
+
+app.ts:
+  — Creates Express app instance
+  — Configures middleware:
+      * cors (allows localhost:5173 origin)
+      * express.json() body parser
+      * Rate limiting (100 req / 15 min window)
+      * Helmet (security headers)
+  — Mounts /api/v1 router (typing.routes.ts)
+  — Registers global error handler middleware
+
+────────────────────────────────────────────────────────────────────
+5.2 CONFIGURATION — config/index.ts
+────────────────────────────────────────────────────────────────────
+
+All config is loaded from process.env via dotenv:
+
+  port               : 3001 (default)
+  nodeEnv            : 'development'
+  mongoUri           : 'mongodb://localhost:27017/typing_db'
+  corsOrigin         : 'http://localhost:5173'
+  geminiApiKey       : '' (required for AI features)
+  scoringVersion     : '1.0'
+  rateLimitWindowMs  : 900000 (15 minutes)
+  rateLimitMax       : 100 requests per window
+  sessionSecret      : 'dev_secret_key_12345' (change in production)
+
+────────────────────────────────────────────────────────────────────
+5.3 DATABASE LAYER — config/database.ts
+────────────────────────────────────────────────────────────────────
+
+  — Attempts MongoDB connection via mongoose.connect()
+  — If MongoDB is unreachable, falls back to an in-memory Map store
+  — In-memory store keeps sessions and results for the server's lifetime
+  — Data is lost on server restart when using in-memory mode
+  — MongoDB connection string: MONGODB_URI from .env
+
+────────────────────────────────────────────────────────────────────
+5.4 TYPING ROUTES — typing.routes.ts
+────────────────────────────────────────────────────────────────────
+
+All routes are mounted under /api/v1
+
+ROUTE SUMMARY:
+
+  GET  /passages                    → List seed passages (filterable)
+  GET  /passages?ai=true            → Generate Gemini AI passage (dynamic)
+  GET  /passages?ai=true&category=X → Category-specific Gemini passage
+  GET  /passages/random-gemini      → Always returns a fresh Gemini passage
+  GET  /passages/:id                → Single passage by ID
+
+  POST /typing/sessions             → Create new session
+       Body: { passageId, customPassage, mode, duration }
+
+  POST /typing/sessions/:id/start   → Start session (record server timestamp)
+
+  POST /typing/sessions/:id/complete → Submit typed text, calculate scores
+       Body: { typedText, events[] }
+
+  GET  /typing/history              → Get all sessions for visitor
+       Header: X-Visitor-Id required
+
+  GET  /analytics/summary           → Aggregate stats for visitor
+
+  POST /ai/feedback                 → Request Gemini coaching analysis
+       Body: { netWpm, grossWpm, accuracy, durationSeconds, passageCategory }
+
+VISITOR ID EXTRACTION:
+  All visitor-scoped routes require either:
+  — X-Visitor-Id request header, OR
+  — visitorId query parameter
+  Missing visitor ID throws ValidationError (400)
+
+────────────────────────────────────────────────────────────────────
+5.5 TYPING SERVICE — typing.service.ts
+────────────────────────────────────────────────────────────────────
+
+Manages the session lifecycle:
+
+  createSession(visitorId, options)
+    — Generates unique sessionId (UUID)
+    — Stores session with passage text (from passageId or customPassage)
+    — Status: 'created'
+
+  startSession(sessionId, visitorId)
+    — Records authoritative start timestamp (Date.now())
+    — Status: 'active'
+
+  completeSession(sessionId, visitorId, { typedText, events })
+    — Validates session exists and belongs to visitor
+    — Calculates duration: now - startTimestamp
+    — Calls calculateTypingScore() from scoring engine
+    — Calls AiService.generateFeedback() for coaching
+    — Persists result to MongoDB (or in-memory store)
+    — Returns full ScoringResult + AI feedback
+
+  getHistory(visitorId)
+    — Returns all completed sessions for visitor
+    — Sorted by date descending
+
+  getAnalyticsSummary(visitorId)
+    — Aggregates: totalTests, bestWpm, averageWpm, averageAccuracy
+
+────────────────────────────────────────────────────────────────────
+5.6 SCORING ENGINE — scoring.engine.ts
+────────────────────────────────────────────────────────────────────
+
+The authoritative, server-side typing score calculator.
+Version: 1.0
+
+INPUTS (ScoringInput interface):
+  targetPassage  : string  — The original passage text
+  typedText      : string  — What the user actually typed
+  durationMs     : number  — Elapsed time in milliseconds
+  events         : TraceEvent[] — Keystroke trace (optional)
+
+OUTPUTS (ScoringResult interface):
+  scoringVersion     : '1.0'
+  grossWpm           : Total insertions / 5 / minutes
+  netWpm             : Correct chars / 5 / minutes
+  accuracy           : Correct chars / total typed × 100
+  keystrokeAccuracy  : Correct insertions / total insertions × 100
+  correctChars       : Count of character-position matches
+  incorrectChars     : Count of mismatches
+  totalInsertions    : Total key presses (from events or typedText length)
+  corrections        : Number of backspace events
+  elapsedSeconds     : Duration rounded to seconds
+  benchmarkEligible  : true if ≥10 seconds and ≥10 characters typed
+  intervalData       : Per-5-second WPM/accuracy snapshots
+
+FORMULA DETAILS:
+  — Grapheme-safe: uses Array.from() for Unicode character iteration
+  — safeDurationMs: max(durationMs, 1) prevents division by zero
+  — Gross WPM = round((insertions/5) / minutes × 10) / 10
+  — Net WPM   = round((correctCount/5) / minutes × 10) / 10
+  — Accuracy  = round(correctCount / max(1, typedChars.length) × 1000) / 10
+  — Keystroke Accuracy = min(100, round(correctAttempts / insertions × 1000) / 10)
+
+INTERVAL DATA:
+  — Generated for every 5-second segment of the test
+  — WPM per interval: netWpm × (0.9 + sin(i) × 0.1) — slight natural variation
+  — Accuracy per interval: clamped to [80, 100] range
+
+────────────────────────────────────────────────────────────────────
+5.7 PASSAGES DATA — passages.data.ts
+────────────────────────────────────────────────────────────────────
+
+Contains the static seed passage library used as fallback when
+Gemini AI is unavailable.
+
+Passage interface:
+  id                : string (unique slug)
+  title             : string
+  text              : string (the typing content)
+  language          : 'en'
+  category          : 'general' | 'code' | 'punctuation' | 'numbers'
+  difficulty        : 'easy' | 'medium' | 'hard'
+  supportedModes    : string[] — ['standard', 'time', 'words', 'practice']
+  benchmarkEligible : boolean
+
+SEED CATEGORIES:
+  general     — Natural English paragraphs about technology, science, nature
+  code        — Real JavaScript/TypeScript/Python snippets (4-8 lines)
+  punctuation — Sentences rich in commas, em-dashes, semicolons, quotes
+  numbers     — Data-entry style text with figures, dates, percentages, IDs
+
+────────────────────────────────────────────────────────────────────
+5.8 AI SERVICE — ai.service.ts (GEMINI INTEGRATION)
+────────────────────────────────────────────────────────────────────
+
+See Section 7 for full Gemini AI Integration detail.
+
+KEY CLASS: AiService
+  static generateDynamicPassage(category, difficulty) → Promise<Passage>
+  static generateFeedback(input: AiFeedbackRequest)   → Promise<AiFeedbackResponse>
+
+────────────────────────────────────────────────────────────────────
+5.9 DATABASE MODEL — TypingResult.model.ts
+────────────────────────────────────────────────────────────────────
+
+Mongoose schema for persisting completed typing sessions.
+
+Fields:
+  visitorId          : String (indexed)
+  sessionId          : String (unique)
+  passageId          : String
+  passageText        : String
+  typedText          : String
+  netWpm             : Number
+  grossWpm           : Number
+  accuracy           : Number
+  keystrokeAccuracy  : Number
+  correctChars       : Number
+  incorrectChars     : Number
+  totalInsertions    : Number
+  corrections        : Number
+  elapsedSeconds     : Number
+  benchmarkEligible  : Boolean
+  category           : String
+  difficulty         : String
+  mode               : String
+  createdAt          : Date (auto-managed by Mongoose timestamps)
+
+────────────────────────────────────────────────────────────────────
+5.10 ERROR HANDLING
+────────────────────────────────────────────────────────────────────
+
+AppError.ts:
+  Base class with statusCode and message
+  Subclasses: ValidationError (400), NotFoundError (404)
+
+errorHandler.ts (Global Express middleware):
+  — Catches all errors thrown in route handlers
+  — Returns JSON: { success: false, error: message, statusCode }
+  — In production, hides internal error details
+  — Logs errors to console in development
+
+================================================================================
+6. API ENDPOINTS REFERENCE
+================================================================================
+
+BASE URL: http://localhost:3001/api/v1
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PASSAGES                                                                │
+├───────────────────────────────────────┬─────────────────────────────────┤
+│ GET /passages                         │ Returns all seed passages        │
+│ GET /passages?category=code           │ Filter by category               │
+│ GET /passages?difficulty=hard         │ Filter by difficulty             │
+│ GET /passages?ai=true                 │ Gemini-generated passage         │
+│ GET /passages?ai=true&category=code   │ Category-specific Gemini passage │
+│ GET /passages/random-gemini           │ Always fresh Gemini passage      │
+│ GET /passages/random-gemini?category= │ With category                    │
+│ GET /passages/:id                     │ Specific passage by ID           │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│ TYPING SESSIONS                       │                                  │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│ POST /typing/sessions                 │ Create session                   │
+│   Headers: X-Visitor-Id               │                                  │
+│   Body: { passageId, customPassage,   │                                  │
+│           mode, duration }            │                                  │
+│                                       │                                  │
+│ POST /typing/sessions/:id/start       │ Start session (record timestamp) │
+│   Headers: X-Visitor-Id               │                                  │
+│                                       │                                  │
+│ POST /typing/sessions/:id/complete    │ Submit & score                   │
+│   Headers: X-Visitor-Id               │                                  │
+│   Body: { typedText, events[] }       │                                  │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│ HISTORY & ANALYTICS                   │                                  │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│ GET /typing/history                   │ All sessions for visitor         │
+│   Headers: X-Visitor-Id               │                                  │
+│                                       │                                  │
+│ GET /analytics/summary                │ Aggregate stats for visitor      │
+│   Headers: X-Visitor-Id               │                                  │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│ AI COACHING                           │                                  │
+├───────────────────────────────────────┼─────────────────────────────────┤
+│ POST /ai/feedback                     │ Get Gemini coaching feedback      │
+│   Body: { netWpm, grossWpm,           │                                  │
+│           accuracy, durationSeconds,  │                                  │
+│           passageCategory }           │                                  │
+└───────────────────────────────────────┴─────────────────────────────────┘
+
+================================================================================
+7. GEMINI AI INTEGRATION (DETAILED)
+================================================================================
+
+MODEL USED: gemini-flash-lite-latest
+ENDPOINT: https://generativelanguage.googleapis.com/v1beta/models/
+          gemini-flash-lite-latest:generateContent?key={GEMINI_API_KEY}
+
+7.1 DYNAMIC PASSAGE GENERATION
+────────────────────────────────
+
+CATEGORY PROMPTS (what gets sent to Gemini per scenario):
+
+  GENERAL:
+    "Generate a captivating, natural English paragraph about technology,
+    nature, flow, or human curiosity. (25-35 words)."
+
+  CODE:
+    "Generate a clean, realistic snippet of code in JavaScript, TypeScript,
+    or Python (4 to 6 lines). Include operators, brackets {}, (), semicolons,
+    and indentation. Return ONLY the raw code text, no markdown backticks,
+    no quotes."
+
+  PUNCTUATION:
+    "Generate an expressive literary sentence filled with rich punctuation:
+    commas, em-dashes, semicolons, quotation marks, question marks, and colons.
+    (25-35 words). Return ONLY the sentence."
+
+  NUMBERS:
+    "Generate a realistic data-entry report scenario containing currency
+    figures, dates, percentages, IDs, and quantities (e.g., Q3 revenue
+    $48,210, growth +14.2%, order #9842 on 12/04/2026). (25-35 words).
+    Return ONLY the text."
+
+GENERATION CONFIG:
+  temperature    : 0.95  (high creativity, low repetition)
+  maxOutputTokens: 140
+
+POST-PROCESSING:
+  — Strip markdown code fences: /^```[a-z]*\n?/i and /```$/i
+  — Minimum length check: raw.length > 15
+  — Uniqueness check: !generatedPassageHistory.has(raw)
+  — Add to history Set + persist to JSON file
+
+DUPLICATE PREVENTION:
+  — In-memory Set<string>: generatedPassageHistory
+  — Loaded from disk on server start: data/passage-history.json
+  — Persisted to disk on every new unique passage added
+  — If Gemini returns a duplicate: falls back to category fallback pool
+  — Fallback pool filters out already-used passages too
+
+FALLBACK PASSAGES (used when Gemini is offline or returns invalid content):
+
+  GENERAL fallbacks:
+    "Consistency in mechanical keystrokes is the bridge between chaotic
+     thought and elegant code."
+    "Precision in finger placement unlocks effortless velocity without
+     unnecessary typographical strain."
+    "The tactile actuation of every switch provides immediate kinetic feedback
+     to calibrated muscle memory."
+
+  CODE fallbacks (real JavaScript functions):
+    async function processSession(id) { ... }
+    const calculateWpm = (chars, timeMs) => { ... }
+    export const handleKeypress = (event) => { ... }
+
+  PUNCTUATION fallbacks:
+    '"Wait!" she exclaimed, pausing briefly; "Could it be that simple?"
+     Yes—undoubtedly, it was: precision, not haste, defines mastery.'
+
+  NUMBERS fallbacks:
+    'Audit #9481 on 10/24/2026: Total revenue was $58,920.40 (+18.5%),
+     operating costs totaled $24,100, and net profit reached 34.8% across
+     142 clients.'
+
+7.2 AI COACHING FEEDBACK
+─────────────────────────
+
+PROMPT TEMPLATE:
+  "Act as an expert typing coach. A typist completed a test with 
+   Net WPM: {n}, Gross WPM: {g}, Accuracy: {a}%, Duration: {d}s 
+   in category '{cat}'. Provide encouraging, concise bullet points: 
+   key strengths, areas for improvement, and a suggested practice drill."
+
+GENERATION CONFIG:
+  temperature    : 0.7  (more controlled, professional tone)
+  maxOutputTokens: 250
+
+DETERMINISTIC FALLBACK (when Gemini is offline):
+  Rule-based logic examines netWpm + accuracy:
+  — accuracy ≥ 98%  → "Exceptional precision and minimal error rate."
+  — accuracy ≥ 92%  → "Solid baseline accuracy with good typographical control."
+  — accuracy < 92%  → "Focus on reducing typos by pacing keystrokes deliberately."
+  — netWpm ≥ 70     → "High-speed velocity suitable for competitive demands."
+  — netWpm ≥ 45     → "Steady typing cadence above typical thresholds."
+  — netWpm < 45     → "Develop muscle memory for home row transitions."
+  — category=code/punctuation → adds special character drill suggestion
+
+7.3 PASSAGE HISTORY PERSISTENCE
+─────────────────────────────────
+
+  File: backend/data/passage-history.json
+  Format: JSON array of strings (passage texts)
+  
+  On server start:
+    — If file exists: load into generatedPassageHistory Set
+    — If file missing: start with empty Set
+  
+  On each new unique passage:
+    — persistHistory() writes full Set to JSON file
+    — Creates data/ directory if it doesn't exist
+    — Wrapped in try/catch (file I/O errors don't crash server)
+
+================================================================================
+8. GLASSMORPHISM UI DESIGN SPECIFICATION
+================================================================================
+
+DESIGN PHILOSOPHY:
+  Premium frosted-glass aesthetic with deep transparency, subtle borders,
+  and layered depth. All panels appear to float above a rich gradient mesh
+  background. No heavy shadows, no stark colors — everything is soft,
+  luminous, and refined.
+
+COMPONENT SYSTEM:
+
+  .glass-panel
+    background      : rgba(27, 38, 59, 0.68)
+    backdrop-filter : blur(16px)
+    border          : 1px solid rgba(65, 90, 119, 0.28)
+    border-radius   : 16px
+    box-shadow      : 0 16px 40px -10px rgba(10,20,32,0.6)
+    ::before pseudo : 1px gradient shimmer line at top (glass edge highlight)
+
+  .glass-panel-subtle
+    background      : rgba(27, 38, 59, 0.45)
+    backdrop-filter : blur(10px)
+    border-radius   : 12px
+
+  .glass-btn
+    background      : rgba(27, 38, 59, 0.5)
+    border          : 1px solid rgba(65, 90, 119, 0.28)
+    border-radius   : 8px
+    padding         : 8px 14px
+    font-weight     : 600
+    transition      : all 0.2s ease
+    hover           : background lightens, border brightens
+
+  .glass-btn.primary
+    background      : var(--color-accent) = #D4C4A8
+    color           : var(--color-bg-deep) = #0D1B2A
+    box-shadow      : glow accent
+
+BACKGROUND:
+  body background   : #0D1B2A (solid)
+  background-image  : radial gradient mesh (3 overlapping gradients)
+  background-attachment: fixed (parallax effect on scroll)
+  transition        : 0.4s ease (smooth theme switching)
+
+TYPOGRAPHY SCALE:
+  Hero heading      : 2.8rem, weight 800, letterSpacing: -0.02em
+  Section heading   : 1.25rem, weight 700
+  Body text         : 1.05rem, lineHeight 1.65
+  Small/muted       : 0.75–0.85rem
+  Typing area       : JetBrains Mono, 1.3rem, lineHeight 1.9
+  Badge/label       : 0.7rem, uppercase, letterSpacing 0.08em
+
+================================================================================
+9. 3D RENDERING SPECIFICATION
+================================================================================
+
+THREE.JS VERSION: r160+ (via npm)
+
+RENDERING SETTINGS (both scenes):
+  Tone Mapping     : THREE.ACESFilmicToneMapping (cinematic HDR-like)
+  Exposure         : 1.35
+  Output Color     : THREE.SRGBColorSpace
+  Pixel Ratio      : min(window.devicePixelRatio, 2)
+  Antialiasing     : enabled
+  Alpha (bg clear) : true (transparent canvas over CSS background)
+
+PERFORMANCE CONSIDERATIONS:
+  — requestAnimationFrame loop for smooth 60fps rendering
+  — Cleanup on React component unmount:
+      cancelAnimationFrame, renderer.dispose(), removeChild
+  — Pixel ratio capped at 2 (prevents excessive resolution on high-DPI)
+  — prefersReducedMotion media query respected in KeyboardModelViewer
+
+INTRO LOGO SCENE CLEANUP:
+  — hasFinishedRef prevents double-mount in React StrictMode
+  — All event listeners removed on unmount
+  — WebGL context properly disposed
+
+================================================================================
+10. ENVIRONMENT VARIABLES
+================================================================================
+
+backend/.env (DO NOT COMMIT — use .env.example as template):
+
+  PORT=3001
+  NODE_ENV=development
+  MONGODB_URI=mongodb://localhost:27017/typing_db
+  CORS_ORIGIN=http://localhost:5173
+  GEMINI_API_KEY=your_google_gemini_api_key_here
+  SCORING_VERSION=1.0
+  RATE_LIMIT_WINDOW_MS=900000
+  RATE_LIMIT_MAX=100
+  SESSION_SECRET=your_random_secret_here
+
+frontend/.env:
+
+  VITE_API_BASE_URL=http://localhost:3001
+
+HOW TO GET A GEMINI API KEY:
+  1. Go to: https://aistudio.google.com/app/apikey
+  2. Sign in with your Google account
+  3. Click "Create API Key"
+  4. Copy the key and paste into backend/.env as GEMINI_API_KEY=...
+
+================================================================================
+11. RUNNING THE PROJECT
+================================================================================
+
+PREREQUISITES:
+  — Node.js 20+
+  — npm 9+
+  — (Optional) MongoDB running locally on port 27017
+    The backend works without MongoDB using in-memory fallback.
+
+BACKEND (Terminal 1):
+  cd C:\Users\ADITI\Desktop\Typing\backend
+  npm install           (first time only)
+  npx tsc               (compile TypeScript)
+  node dist/server.js   (start server)
+  → Server starts at: http://localhost:3001
+
+FRONTEND (Terminal 2):
+  cd C:\Users\ADITI\Desktop\Typing\frontend
+  npm install           (first time only)
+  npm run dev           (start Vite dev server)
+  → App available at: http://localhost:5173
+
+BATCH LAUNCHERS (Windows):
+  Double-click: start-backend.bat
+  Double-click: start-frontend.bat
+
+BUILD FOR PRODUCTION:
+  Frontend: npm run build  (outputs to frontend/dist/)
+  Backend:  npx tsc        (outputs to backend/dist/)
+
+================================================================================
+12. KEY FEATURES CHECKLIST
+================================================================================
+
+CORE FEATURES:
+  [x] 3D logo intro splash screen (Three.js, plays once per page load)
+  [x] Plays exactly ONCE per browser refresh (hasFinishedRef guard)
+  [x] Smooth 3.8-second animation with fade transition
+  [x] Interactive 3D Aula F75 keyboard model (Home dashboard)
+  [x] Drag/rotate/zoom OrbitControls
+  [x] Auto-rotate toggle
+  [x] Camera reset button
+
+AI FEATURES:
+  [x] Gemini AI generates unique passage on every page load
+  [x] Category-aware generation (general / code / punctuation / numbers)
+  [x] "New AI Sentence" button for on-demand fresh passage
+  [x] No duplicate passages (in-memory Set + file persistence)
+  [x] Passage history persisted across server restarts (JSON file)
+  [x] Gemini AI coaching feedback after test completion
+  [x] Deterministic fallback if Gemini API is unavailable
+  [x] Category-specific fallback passages
+
+TYPING TEST FEATURES:
+  [x] Duration selection: 30s / 60s / 120s
+  [x] Category selection: All / General / Code / Punctuation / Numbers
+  [x] Character-level accuracy coloring (correct=green, wrong=red)
+  [x] Current position cursor (bottom border on active character)
+  [x] Live WPM / Accuracy / Progress / Time HUD
+  [x] Progress bar
+  [x] Mechanical keyboard click synthesizer (Web Audio API)
+  [x] Sound mute toggle
+  [x] Auto-complete when passage is fully typed
+  [x] Confetti celebration on test completion
+  [x] Keystroke event tracing (for analytics)
+
+SCORING:
+  [x] Server-authoritative scoring (not client-calculated)
+  [x] Net WPM (correct chars only)
+  [x] Gross WPM (all insertions)
+  [x] Accuracy %
+  [x] Keystroke Accuracy %
+  [x] Corrections count (backspaces)
+  [x] Benchmark eligibility check
+  [x] Per-5-second interval data for trend charts
+
+DATA & PERSISTENCE:
+  [x] Anonymous visitor sessions (UUID in localStorage)
+  [x] MongoDB persistence for results
+  [x] In-memory fallback if MongoDB unavailable
+  [x] Full test history viewable
+  [x] Analytics summary (best WPM, average WPM, accuracy, total tests)
+
+UI & DESIGN:
+  [x] Glassmorphism design system (two complete themes)
+  [x] Dark Ocean theme (default)
+  [x] Warm Earth theme (alternate)
+  [x] Theme persisted to localStorage
+  [x] Smooth theme transition animation
+  [x] Responsive layout (flexbox + CSS grid)
+  [x] JetBrains Mono font in typing area
+  [x] Plus Jakarta Sans for UI elements
+  [x] Fully glass navigation header (sticky)
+
+================================================================================
+13. KNOWN ISSUES & RESOLUTIONS
+================================================================================
+
+ISSUE 1: 3D Intro logo plays twice
+  Cause:   React StrictMode runs useEffect twice in development
+  Fix:     hasFinishedRef = useRef(false); skip if already finished
+
+ISSUE 2: Logo had visible dark gray background rectangle
+  Cause:   Original logo PNG had dark background pixels
+  Fix:     Processed logo through C# ImageProcessor to strip background
+           Saved as logo-no-bg.png with true alpha transparency
+
+ISSUE 3: Gemini API returned 404
+  Cause:   Wrong model name used (gemini-2.5-flash doesn't exist at that URL)
+  Fix:     Switched to gemini-flash-lite-latest (validated with 200 response)
+
+ISSUE 4: Passage history not persisted across server restarts
+  Cause:   Used in-memory Set only
+  Fix:     persistHistory() function writes Set to data/passage-history.json
+           File is loaded back on server start
+
+ISSUE 5: Backend typing.routes.ts missing AiService import
+  Cause:   Import not added when route was created
+  Fix:     Added: import { AiService } from '../../integrations/ai/ai.service.js'
+
+ISSUE 6: Frontend session creation didn't use AI-generated passage
+  Cause:   POST body only sent passageId (not the custom passage text)
+  Fix:     Added customPassage: selectedPassage to POST body
+
+ISSUE 7: 3D keyboard model colors appeared wrong / too dark
+  Cause:   Missing ACES tone mapping and SRGBColorSpace settings
+  Fix:     renderer.toneMapping = ACESFilmicToneMapping (exposure 1.35)
+           renderer.outputColorSpace = SRGBColorSpace
+
+ISSUE 8: Stray floating colored orbs visible in 3D intro scene
+  Cause:   Particle positions generated outside intended z-range
+  Fix:     Tightened particle spread: z-range reduced to ±3 units
+
+================================================================================
+14. FUTURE ENHANCEMENTS
+================================================================================
+
+PLANNED:
+  [ ] Retry with exponential back-off for Gemini 429/503 responses
+  [ ] Global leaderboard (top WPM scores across all visitors)
+  [ ] User account system (optional — preserve anonymous option)
+  [ ] Multiplayer race mode (WebSocket real-time)
+  [ ] Custom passage input by user
+  [ ] Keyboard heatmap (which keys were hit most/least accurately)
+  [ ] Difficulty auto-adjustment based on recent accuracy
+  [ ] Dark mode vs. light mode (third theme option)
+  [ ] Mobile touch support improvements
+  [ ] Progressive Web App (PWA) with offline mode
+  [ ] Export results as PDF / CSV
+  [ ] Language modes (French, German, Spanish passages)
+  [ ] Integration tests for Gemini endpoints
+  [ ] Unit tests for all frontend components
+
+================================================================================
+15. COMMIT HISTORY & CHANGELOG SUMMARY
+================================================================================
+
+PHASE 1 — Initial Setup
+  ✓ Project scaffolded: Vite + React frontend, Express + TypeScript backend
+  ✓ Basic typing test mechanics (without AI)
+  ✓ MongoDB schema and seed passages
+
+PHASE 2 — UI Overhaul (Glassmorphism)
+  ✓ Replaced basic UI with full glassmorphism design system
+  ✓ Implemented Dark Ocean and Warm Earth themes
+  ✓ Added sticky glass navigation header
+  ✓ Converted all panels to .glass-panel components
+
+PHASE 3 — 3D Integration
+  ✓ Added Three.js intro splash screen (Intro3DLogo.jsx)
+  ✓ Integrated authentic Aula F75 GLB model (KeyboardModelViewer.jsx)
+  ✓ Neon multi-point lighting matching Aula brand aesthetic
+  ✓ OrbitControls for interactive 3D inspection
+  ✓ Fixed logo background removal (transparent PNG)
+  ✓ Fixed double-play issue with hasFinishedRef
+
+PHASE 4 — Gemini AI Integration
+  ✓ Added AiService class with generateDynamicPassage()
+  ✓ Category-specific prompts (general/code/punctuation/numbers)
+  ✓ Duplicate prevention via in-memory Set
+  ✓ Passage history persistence to JSON file
+  ✓ Added /passages?ai=true and /passages/random-gemini routes
+  ✓ Frontend auto-fetches Gemini passage on load
+  ✓ "New AI Sentence" button for on-demand generation
+  ✓ Gemini coaching feedback integrated into Results view
+  ✓ Deterministic fallback system for offline operation
+
+PHASE 5 — Scoring Engine & Persistence
+  ✓ Server-authoritative scoring engine v1.0
+  ✓ Net WPM / Gross WPM / Accuracy / Keystroke Accuracy
+  ✓ Keystroke event tracing system
+  ✓ MongoDB persistence with in-memory fallback
+  ✓ Anonymous visitor system (UUID localStorage)
+  ✓ Full history and analytics summary endpoints
+
+================================================================================
+END OF MASTER PROMPT DOCUMENT
+Aula.Typing — Precision Mechanical Typing Benchmark
+Generated: 2026-10-29 | Version 1.0
+================================================================================
