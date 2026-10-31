@@ -5,8 +5,8 @@
     "scripts": {
         "build": "tsc",
         "start": "node dist/server.js",
-        "dev":   "tsx src/server.ts",
-        "test":  "node --test --loader tsx src/modules/typing/scoring.engine.test.ts"
+        "dev": "tsx src/server.ts",
+        "test": "node --test --loader tsx src/modules/typing/scoring.engine.test.ts"
     },
     "keywords": [],
     "author": "",
